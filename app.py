@@ -10,11 +10,11 @@ dictionaryOfDirs = {}
 @app.route('/register/<name>')
 def register(name):
     letters = string.ascii_lowercase + string.ascii_uppercase
-    randomWord = ''.join([random.choice(letters) for _ in range(10)])
-    while randomWord in dictionaryOfDirs:
-        randomWord = ''.join([random.choice(letters) for _ in range(10)])
-    dictionaryOfDirs[name] = randomWord
-    os.mkdir(os.path.join("workspace", randomWord))
+    random_word = ''.join([random.choice(letters) for _ in range(10)])
+    while random_word in dictionaryOfDirs:
+        random_word = ''.join([random.choice(letters) for _ in range(10)])
+    dictionaryOfDirs[name] = random_word
+    os.mkdir(os.path.join("workspace", random_word))
     return "submitted correctly"
 
 @app.route('/upload/<name>/<filename>', methods=["POST"])
@@ -30,9 +30,10 @@ def upload(name, filename):
 def compile(name, filename):
     if filename[-3:] == ".md":
         directory = dictionaryOfDirs[name]
-        os.system("pandoc -f markdown -t html " + os.path.join("workspace", directory, filename))
-        filenameHTML = filename[0:-3] + ".html"
-        file = open(filenameHTML, 'r')
+        input_file_name = os.path.join("workspace", directory, filename)
+        output_file_name = os.path.join("workspace", directory, filename[0:-3] + ".html")
+        os.system("pandoc -f markdown -t html {0} > {1}".format(input_file_name, output_file_name))
+        file = open(output_file_name, 'r')
         return file.read()
 
 
