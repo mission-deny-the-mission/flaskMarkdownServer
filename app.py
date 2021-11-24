@@ -5,31 +5,31 @@ import random
 
 app = Flask(__name__)
 
-dictionaryOfDirs = {}
+dirs = []
 
-@app.route('/register/<name>')
-def register(name):
+@app.route('/register')
+def register():
     letters = string.ascii_lowercase + string.ascii_uppercase
     random_word = ''.join([random.choice(letters) for _ in range(10)])
-    while random_word in dictionaryOfDirs:
+    while random_word in dirs:
         random_word = ''.join([random.choice(letters) for _ in range(10)])
-    dictionaryOfDirs[name] = random_word
+    dirs.append(random_word)
     os.mkdir(os.path.join("workspace", random_word))
-    return "submitted correctly"
+    return random_word
 
-@app.route('/upload/<name>/<filename>', methods=["POST"])
-def upload(name, filename):
-    if name not in dictionaryOfDirs:
+@app.route('/upload/<dir>/<filename>', methods=["POST"])
+def upload(dir, filename):
+    if dir not in dirs:
         abort(405, "workspace name not found")
-    with open(os.path.join("workspace", dictionaryOfDirs[name], filename), "wb") as fp:
+    with open(os.path.join("workspace", dir, filename), "wb") as fp:
         fp.write(request.data)
 
     return "", 201
 
-@app.route('/compile/<name>/<filename>/')
-def compile(name, filename):
+@app.route('/compile/<dir>/<filename>/')
+def compile(dir, filename):
     if filename[-3:] == ".md":
-        directory = dictionaryOfDirs[name]
+        directory = dir
         input_file_name = os.path.join("workspace", directory, filename)
         output_file_name = os.path.join("workspace", directory, filename[0:-3] + ".html")
         os.system("pandoc -f markdown -t html {0} > {1}".format(input_file_name, output_file_name))
