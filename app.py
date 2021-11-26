@@ -2,6 +2,7 @@ from flask import Flask, json, request, abort
 import os
 import string
 import random
+import shutil
 
 app = Flask(__name__)
 
@@ -26,8 +27,8 @@ def upload(dir, filename):
 
     return "", 201
 
-@app.route('/compile/<dir>/<filename>')
-def compile(dir, filename):
+@app.route('/CompileMDtoHTML/<dir>/<filename>')
+def compile_MD_to_HTML(dir, filename):
     if filename[-3:] == ".md":
         input_file_name = os.path.join("workspace", dir, filename)
         output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".html")
@@ -35,14 +36,26 @@ def compile(dir, filename):
         file = open(output_file_name, 'r')
         return file.read()
 
-@app.route('/compilepdf/<dir>/<filename>')
-def compilePDF(dir, filename):
+@app.route('/CompileMDtoPDF/<dir>/<filename>')
+def compile_MD_to_PDF(dir, filename):
     if filename[-3:] == ".md":
         input_file_name = os.path.join("workspace", dir, filename)
         output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".pdf")
         os.system("pandoc -f markdown {0} -o {1}".format(input_file_name, output_file_name))
         file = open(output_file_name, 'rb')
         return file.read()
+
+@app.route('/CompileLaTeXtoPDF/<dir>/<filename>')
+def compile_LaTeX_to_PDF(dir, filename):
+    if filename[-4:] == ".tex":
+        processed_file_name = os.path.join("workspace", dir, filename)
+        os.system("pdflatex " + processed_file_name)
+        file = open(output_file_name, 'rb')
+        return file.read()
+
+@app.route('/Delete/<dir>')
+def delete(dir):
+    shutil.rmtree(os.path.join("workspace", dir))
 
 if __name__ == '__main__':
     app.run()
