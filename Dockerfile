@@ -6,6 +6,7 @@ COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 RUN apt -y update
 RUN apt -y install pandoc
+RUN apt -y install texlive-full
 RUN mkdir workspace
 COPY app.py .
 CMD [ "python3", "-m", "flask", "run", "--host=0.0.0.0" ]

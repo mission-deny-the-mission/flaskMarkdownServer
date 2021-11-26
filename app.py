@@ -26,16 +26,23 @@ def upload(dir, filename):
 
     return "", 201
 
-@app.route('/compile/<dir>/<filename>/')
+@app.route('/compile/<dir>/<filename>')
 def compile(dir, filename):
     if filename[-3:] == ".md":
-        directory = dir
-        input_file_name = os.path.join("workspace", directory, filename)
-        output_file_name = os.path.join("workspace", directory, filename[0:-3] + ".html")
+        input_file_name = os.path.join("workspace", dir, filename)
+        output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".html")
         os.system("pandoc -f markdown -t html {0} > {1}".format(input_file_name, output_file_name))
         file = open(output_file_name, 'r')
         return file.read()
 
+@app.route('/compilepdf/<dir>/<filename>')
+def compilePDF(dir, filename):
+    if filename[-3:] == ".md":
+        input_file_name = os.path.join("workspace", dir, filename)
+        output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".pdf")
+        os.system("pandoc -f markdown {0} -o {1}".format(input_file_name, output_file_name))
+        file = open(output_file_name, 'rb')
+        return file.read()
 
 if __name__ == '__main__':
     app.run()
