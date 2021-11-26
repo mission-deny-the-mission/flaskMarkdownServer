@@ -48,14 +48,17 @@ def compile_MD_to_PDF(dir, filename):
 @app.route('/CompileLaTeXtoPDF/<dir>/<filename>')
 def compile_LaTeX_to_PDF(dir, filename):
     if filename[-4:] == ".tex":
-        processed_file_name = os.path.join("workspace", dir, filename)
-        os.system("pdflatex " + processed_file_name)
+        output_file_name = os.path.join("workspace", dir, filename[0:-4] + ".pdf")
+        os.chdir(os.path.join("workspace", dir))
+        os.system("pdflatex " + filename)
+        os.chdir("../..")
         file = open(output_file_name, 'rb')
         return file.read()
 
 @app.route('/Delete/<dir>')
 def delete(dir):
-    shutil.rmtree(os.path.join("workspace", dir))
+    os.system("rm -r " + os.path.join("workspace", dir))
+    return "", 200
 
 if __name__ == '__main__':
     app.run()
