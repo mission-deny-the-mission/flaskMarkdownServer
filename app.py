@@ -1,3 +1,5 @@
+from time import sleep
+
 from flask import Flask, json, request, abort
 import os
 import string
@@ -14,13 +16,19 @@ def register():
     random_word = ''.join([random.choice(letters) for _ in range(10)])
     while random_word in dirs:
         random_word = ''.join([random.choice(letters) for _ in range(10)])
-    dirs.append(random_word)
-    os.mkdir(os.path.join("workspace", random_word))
-    return random_word
+    try:
+        os.mkdir(os.path.join("workspace", random_word))
+    except OSError as err:
+        return "error creating directory", 405
+    else:
+        dirs.append(random_word)
+        return random_word
 
-@app.route('/upload/<dir>/<filename>', methods=["POST"])
+@app.route('/upload/<dir>/<filename>', methods=["GET", "POST"])
 def upload(dir, filename):
-    if dir not in dirs:
+    if (request.method == "GET"):
+        return "", 200
+    if not os.path.isdir(os.path.join("workspace", dir)):
         abort(405, "workspace name not found")
     with open(os.path.join("workspace", dir, filename), "wb") as fp:
         fp.write(request.data)
@@ -57,8 +65,13 @@ def compile_LaTeX_to_PDF(dir, filename):
 
 @app.route('/Delete/<dir>')
 def delete(dir):
+    global dirs
     os.system("rm -r " + os.path.join("workspace", dir))
     return "", 200
+
+@app.route('/')
+def index():
+    return "Hello world!", 200
 
 if __name__ == '__main__':
     app.run()
