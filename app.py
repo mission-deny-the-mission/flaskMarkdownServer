@@ -1,19 +1,20 @@
+import glob
 from time import sleep
 
 from flask import Flask, json, request, abort
 import os
 import string
 import random
+import json
 import shutil
 
 app = Flask(__name__)
-
-dirs = []
 
 @app.route('/register')
 def register():
     letters = string.ascii_lowercase + string.ascii_uppercase
     random_word = ''.join([random.choice(letters) for _ in range(10)])
+    dirs = [x[0] for x in os.walk('workspace')]
     while random_word in dirs:
         random_word = ''.join([random.choice(letters) for _ in range(10)])
     try:
@@ -21,7 +22,6 @@ def register():
     except OSError as err:
         return "error creating directory", 405
     else:
-        dirs.append(random_word)
         return random_word
 
 @app.route('/upload/<dir>/<filename>', methods=["GET", "POST"])
@@ -65,9 +65,18 @@ def compile_LaTeX_to_PDF(dir, filename):
 
 @app.route('/Delete/<dir>')
 def delete(dir):
-    global dirs
     os.system("rm -r " + os.path.join("workspace", dir))
     return "", 200
+
+@app.route('/ListFiles/<workspace>')
+def listFiles(workspace):
+    os.chdir(os.path.join('workspace', workspace))
+    files = []
+    for file in glob.glob('*'):
+        stats = os.stat(file)
+        files.append({"name": file, "size": stats.st_size})
+    os.chdir('../../')
+    return json.dumps(files)
 
 @app.route('/')
 def index():
