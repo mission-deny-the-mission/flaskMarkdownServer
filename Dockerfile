@@ -10,5 +10,6 @@ RUN apt -y install texlive-full
 RUN pip3 install gunicorn
 RUN mkdir workspace
 COPY app.py .
+COPY password_hashing.py .
 EXPOSE 80
 CMD [ "gunicorn", "-w", "4", "-b", "0.0.0.0:80", "app:app" ]

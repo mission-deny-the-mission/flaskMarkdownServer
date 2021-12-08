@@ -6,12 +6,12 @@ import os
 import string
 import random
 import json
-import shutil
+import password_hashing
 
 app = Flask(__name__)
 
-@app.route('/register')
-def register():
+@app.route('/register/<password>')
+def register(password):
     letters = string.ascii_lowercase + string.ascii_uppercase
     random_word = ''.join([random.choice(letters) for _ in range(10)])
     dirs = [x[0] for x in os.walk('workspace')]
@@ -19,13 +19,18 @@ def register():
         random_word = ''.join([random.choice(letters) for _ in range(10)])
     try:
         os.mkdir(os.path.join("workspace", random_word))
+        file = open(os.path.join("workspace", random_word, "password.hash"), 'wb')
+        file.write(password_hashing.hash_password(password))
+        file.close()
     except OSError as err:
         return "error creating directory", 405
     else:
         return random_word
 
-@app.route('/upload/<dir>/<filename>', methods=["GET", "POST"])
-def upload(dir, filename):
+@app.route('/upload/<dir>/<password>/<filename>', methods=["GET", "POST"])
+def upload(dir, password, filename):
+    if not password_hashing.check_password(dir, password):
+        return "Incorrect password", 401
     if (request.method == "GET"):
         return "", 200
     if not os.path.isdir(os.path.join("workspace", dir)):
@@ -35,8 +40,10 @@ def upload(dir, filename):
 
     return "", 201
 
-@app.route('/CompileMDtoHTML/<dir>/<filename>')
-def compile_MD_to_HTML(dir, filename):
+@app.route('/CompileMDtoHTML/<dir>/<password>/<filename>')
+def compile_MD_to_HTML(dir, password, filename):
+    if not password_hashing.check_password(dir, password):
+        return "Incorrect password", 401
     if filename[-3:] == ".md":
         input_file_name = os.path.join("workspace", dir, filename)
         output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".html")
@@ -44,8 +51,10 @@ def compile_MD_to_HTML(dir, filename):
         file = open(output_file_name, 'r')
         return file.read()
 
-@app.route('/CompileMDtoPDF/<dir>/<filename>')
-def compile_MD_to_PDF(dir, filename):
+@app.route('/CompileMDtoPDF/<dir>/<password>/<filename>')
+def compile_MD_to_PDF(dir, password, filename):
+    if not password_hashing.check_password(dir, password):
+        return "Incorrect password", 401
     if filename[-3:] == ".md":
         input_file_name = os.path.join("workspace", dir, filename)
         output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".pdf")
@@ -53,8 +62,10 @@ def compile_MD_to_PDF(dir, filename):
         file = open(output_file_name, 'rb')
         return file.read()
 
-@app.route('/CompileLaTeXtoPDF/<dir>/<filename>')
-def compile_LaTeX_to_PDF(dir, filename):
+@app.route('/CompileLaTeXtoPDF/<dir>/<password>/<filename>')
+def compile_LaTeX_to_PDF(dir, password, filename):
+    if not password_hashing.check_password(dir, password):
+        return "Incorrect password", 401
     if filename[-4:] == ".tex":
         output_file_name = os.path.join("workspace", dir, filename[0:-4] + ".pdf")
         os.chdir(os.path.join("workspace", dir))
@@ -63,13 +74,17 @@ def compile_LaTeX_to_PDF(dir, filename):
         file = open(output_file_name, 'rb')
         return file.read()
 
-@app.route('/Delete/<dir>')
-def delete(dir):
+@app.route('/Delete/<dir>/<password>')
+def delete(dir, password):
+    if not password_hashing.check_password(dir, password):
+        return "Incorrect password", 401
     os.system("rm -r " + os.path.join("workspace", dir))
     return "", 200
 
-@app.route('/ListFiles/<workspace>')
-def listFiles(workspace):
+@app.route('/ListFiles/<workspace>/<password>')
+def listFiles(workspace, password):
+    if not password_hashing.check_password(workspace, password):
+        return "Incorrect password", 401
     os.chdir(os.path.join('workspace', workspace))
     files = []
     for file in glob.glob('*'):
@@ -78,8 +93,10 @@ def listFiles(workspace):
     os.chdir('../../')
     return json.dumps(files)
 
-@app.route('/Download/<workspace>/<file>')
-def downloadFile(workspace, file):
+@app.route('/Download/<workspace>/<password>/<file>')
+def downloadFile(workspace, password, file):
+    if not password_hashing.check_password(workspace, password):
+        return "Incorrect password", 401
     file = open(os.path.join(workspace, file), 'rb')
     return file.read()
 
