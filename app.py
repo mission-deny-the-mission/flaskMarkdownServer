@@ -78,6 +78,11 @@ def listFiles(workspace):
     os.chdir('../../')
     return json.dumps(files)
 
+@app.route('/Download/<workspace>/<file>')
+def downloadFile(workspace, file):
+    file = open(os.path.join(workspace, file), 'rb')
+    return file.read()
+
 @app.route('/')
 def index():
     return "Hello world!", 200
