@@ -1,5 +1,4 @@
 import glob
-from time import sleep
 
 from flask import Flask, json, request, abort
 import os
@@ -99,6 +98,17 @@ def downloadFile(workspace, password, file):
         return "Incorrect password", 401
     file = open(os.path.join(workspace, file), 'rb')
     return file.read()
+
+@app.route('/CreateSubFolder/<workspace>/<password>/<folderpath>')
+def createSubFolder(workspace, password, folderpath):
+    if not password_hashing.check_password(workspace, password):
+        return "Incorrect password", 401
+    try:
+        os.mkdir(os.path.join(workspace, folderpath))
+    except Exception as exp:
+        return "Error creating folder", 500
+    else:
+        return "", 200
 
 @app.route('/')
 def index():
