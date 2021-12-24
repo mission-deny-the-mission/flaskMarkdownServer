@@ -9,6 +9,7 @@ import password_hashing
 
 app = Flask(__name__)
 
+
 @app.route('/register/', methods=["GET", "POST"])
 def register():
     contents = request.get_json()
@@ -23,80 +24,112 @@ def register():
         file = open(os.path.join("workspace", random_word, "password.hash"), 'wb')
         file.write(password_hashing.hash_password(password))
         file.close()
-    except OSError as err:
+    except OSError as _:
         return "error creating directory", 405
     else:
         return random_word
 
+
 @app.route('/upload', methods=["GET", "POST"])
 def upload():
     if "json" not in request.files:
-        return "Missing json", 400
+        return "Missing JSON", 400
     contents = json.loads(request.files["json"].read())
-    dir = contents["workspace"]
+    if not all(key in contents for key in ["workspace", "password", "filename"]):
+        return "Missing information in JSON file", 400
+    workspace = contents["workspace"]
     password = contents["password"]
     filename = contents["filename"]
     if filename not in request.files:
         return "Missing file", 400
-    if not password_hashing.check_password(dir, password):
+    if not os.path.isdir(os.path.join("workspace", workspace)):
+        return "workspace name not found", 400
+    if not password_hashing.check_password(workspace, password):
         return "Incorrect password", 401
-    if (request.method == "GET"):
+    if request.method == "GET":
         return "", 200
-    if not os.path.isdir(os.path.join("workspace", dir)):
-        abort(405, "workspace name not found")
+
     try:
-        with open(os.path.join("workspace", dir, filename), "wb") as fp:
+        with open(os.path.join("workspace", workspace, filename), "wb") as fp:
             fp.write(request.files[filename].read())
-    except IOError as e:
+    except IOError as _:
         return "Could not create file on server", 500
 
     return "", 201
 
+
 @app.route('/CompileMDtoHTML/', methods=["POST", "GET"])
 def compile_MD_to_HTML():
     contents = request.get_json()
-    dir = contents["workspace"]
+    if contents is None:
+        return "Missing JSON", 400
+    elif not all(key in contents for key in ["workspace", "password", "filename"]):
+        return "Missing parameter in JSON", 400
+    workspace = contents["workspace"]
     password = contents["password"]
     filename = contents["filename"]
-    if not password_hashing.check_password(dir, password):
+    if not password_hashing.check_password(workspace, password):
         return "Incorrect password", 401
     if filename[-3:] == ".md":
-        input_file_name = os.path.join("workspace", dir, filename)
-        output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".html")
+        input_file_name = os.path.join("workspace", workspace, filename)
+        output_file_name = os.path.join("workspace", workspace, filename[0:-3] + ".html")
+        if not os.path.isfile(input_file_name):
+            return "The file you are trying to compile does not exist", 400
         os.system("pandoc -f markdown -t html {0} > {1}".format(input_file_name, output_file_name))
+        if not os.path.isfile(output_file_name):
+            return "Compilation failed", 500
         file = open(output_file_name, 'r')
         return file.read()
+
 
 @app.route('/CompileMDtoPDF/', methods=["POST", "GET"])
 def compile_MD_to_PDF():
     contents = request.get_json()
-    dir = contents["workspace"]
+    if contents is None:
+        return "Missing JSON", 400
+    elif not all(key in contents for key in ["workspace", "password", "filename"]):
+        return "Missing parameter in JSON", 400
+    workspace = contents["workspace"]
     password = contents["password"]
     filename = contents["filename"]
-    if not password_hashing.check_password(dir, password):
+    if not password_hashing.check_password(workspace, password):
         return "Incorrect password", 401
     if filename[-3:] == ".md":
-        input_file_name = os.path.join("workspace", dir, filename)
-        output_file_name = os.path.join("workspace", dir, filename[0:-3] + ".pdf")
+        input_file_name = os.path.join("workspace", workspace, filename)
+        output_file_name = os.path.join("workspace", workspace, filename[0:-3] + ".pdf")
+        if not os.path.isfile(input_file_name):
+            return "The file you are trying to compile does not exist", 400
         os.system("pandoc -f markdown {0} -o {1}".format(input_file_name, output_file_name))
+        if not os.path.isfile(output_file_name):
+            return "Compilation failed", 500
         file = open(output_file_name, 'rb')
         return file.read()
 
+
 @app.route('/CompileLaTeXtoPDF/', methods=["GET", "POST"])
-def compile_LaTeX_to_PDF():
+def Compile_LaTeX_to_PDF():
     contents = request.get_json()
-    dir = contents["workspace"]
+    if contents == None:
+        return "Missing JSON", 400
+    elif not all(key in contents for key in ["workspace", "password", "filename"]):
+        return "Missing parameter in JSON", 400
+    workspace = contents["workspace"]
     password = contents["password"]
     filename = contents["filename"]
-    if not password_hashing.check_password(dir, password):
+    if not password_hashing.check_password(workspace, password):
         return "Incorrect password", 401
     if filename[-4:] == ".tex":
-        output_file_name = os.path.join("workspace", dir, filename[0:-4] + ".pdf")
-        os.chdir(os.path.join("workspace", dir))
+        output_file_name = os.path.join("workspace", workspace, filename[0:-4] + ".pdf")
+        os.chdir(os.path.join("workspace", workspace))
+        if not os.path.isfile(filename):
+            return "The file you are trying to compile does not exist", 400
         os.system("pdflatex " + filename)
         os.chdir("../..")
+        if not os.path.isfile(output_file_name):
+            return "Compilation failed", 500
         file = open(output_file_name, 'rb')
         return file.read()
+
 
 @app.route('/Delete/', methods=["GET", "POST"])
 def delete():
@@ -107,6 +140,7 @@ def delete():
         return "Incorrect password", 401
     os.system("rm -r " + os.path.join("workspace", dir))
     return "", 200
+
 
 @app.route('/ListFiles/', methods=["GET", "POST"])
 def listFiles():
@@ -123,6 +157,7 @@ def listFiles():
     os.chdir('../../')
     return json.dumps(files)
 
+
 @app.route('/Download/<workspace>/<password>/<file>')
 def downloadFile(workspace, password, file):
     if not password_hashing.check_password(workspace, password):
@@ -130,8 +165,9 @@ def downloadFile(workspace, password, file):
     file = open(os.path.join(workspace, file), 'rb')
     return file.read()
 
+
 @app.route('/CreateSubFolder/', methods=["GET", "POST"])
-def createSubFolder(workspace, password, folderpath):
+def createSubFolder():
     contents = request.get_json()
     workspace = contents["workspace"]
     password = contents["password"]
@@ -144,6 +180,7 @@ def createSubFolder(workspace, password, folderpath):
         return "Error creating folder", 500
     else:
         return "", 200
+
 
 @app.route('/')
 def index():
