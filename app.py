@@ -28,16 +28,21 @@ def register():
     else:
         return random_word
 
-@app.route('/upload/<dir>/<password>/<filename>', methods=["GET", "POST"])
-def upload(dir, password, filename):
+@app.route('/upload', methods=["GET", "POST"])
+def upload():
+    contents = json.loads(request.files["json"].read())
+    dir = contents["workspace"]
+    password = contents["password"]
+    filename = contents["filename"]
     if not password_hashing.check_password(dir, password):
         return "Incorrect password", 401
     if (request.method == "GET"):
         return "", 200
     if not os.path.isdir(os.path.join("workspace", dir)):
         abort(405, "workspace name not found")
+
     with open(os.path.join("workspace", dir, filename), "wb") as fp:
-        fp.write(request.data)
+        fp.write(request.files[filename].read())
 
     return "", 201
 
