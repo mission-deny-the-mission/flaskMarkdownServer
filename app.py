@@ -30,19 +30,25 @@ def register():
 
 @app.route('/upload', methods=["GET", "POST"])
 def upload():
+    if "json" not in request.files:
+        return "Missing json", 400
     contents = json.loads(request.files["json"].read())
     dir = contents["workspace"]
     password = contents["password"]
     filename = contents["filename"]
+    if filename not in request.files:
+        return "Missing file", 400
     if not password_hashing.check_password(dir, password):
         return "Incorrect password", 401
     if (request.method == "GET"):
         return "", 200
     if not os.path.isdir(os.path.join("workspace", dir)):
         abort(405, "workspace name not found")
-
-    with open(os.path.join("workspace", dir, filename), "wb") as fp:
-        fp.write(request.files[filename].read())
+    try:
+        with open(os.path.join("workspace", dir, filename), "wb") as fp:
+            fp.write(request.files[filename].read())
+    except IOError as e:
+        return "Could not create file on server", 500
 
     return "", 201
 
