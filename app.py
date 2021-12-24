@@ -9,8 +9,10 @@ import password_hashing
 
 app = Flask(__name__)
 
-@app.route('/register/<password>')
-def register(password):
+@app.route('/register/', methods=["GET", "POST"])
+def register():
+    contents = request.get_json()
+    password = contents["password"]
     letters = string.ascii_lowercase + string.ascii_uppercase
     random_word = ''.join([random.choice(letters) for _ in range(10)])
     dirs = [x[0] for x in os.walk('workspace')]
@@ -39,8 +41,12 @@ def upload(dir, password, filename):
 
     return "", 201
 
-@app.route('/CompileMDtoHTML/<dir>/<password>/<filename>')
-def compile_MD_to_HTML(dir, password, filename):
+@app.route('/CompileMDtoHTML/', methods=["POST", "GET"])
+def compile_MD_to_HTML():
+    contents = request.get_json()
+    dir = contents["workspace"]
+    password = contents["password"]
+    filename = contents["filename"]
     if not password_hashing.check_password(dir, password):
         return "Incorrect password", 401
     if filename[-3:] == ".md":
@@ -50,8 +56,12 @@ def compile_MD_to_HTML(dir, password, filename):
         file = open(output_file_name, 'r')
         return file.read()
 
-@app.route('/CompileMDtoPDF/<dir>/<password>/<filename>')
-def compile_MD_to_PDF(dir, password, filename):
+@app.route('/CompileMDtoPDF/', methods=["POST", "GET"])
+def compile_MD_to_PDF():
+    contents = request.get_json()
+    dir = contents["workspace"]
+    password = contents["password"]
+    filename = contents["filename"]
     if not password_hashing.check_password(dir, password):
         return "Incorrect password", 401
     if filename[-3:] == ".md":
@@ -61,8 +71,12 @@ def compile_MD_to_PDF(dir, password, filename):
         file = open(output_file_name, 'rb')
         return file.read()
 
-@app.route('/CompileLaTeXtoPDF/<dir>/<password>/<filename>')
-def compile_LaTeX_to_PDF(dir, password, filename):
+@app.route('/CompileLaTeXtoPDF/', methods=["GET", "POST"])
+def compile_LaTeX_to_PDF():
+    contents = request.get_json()
+    dir = contents["workspace"]
+    password = contents["password"]
+    filename = contents["filename"]
     if not password_hashing.check_password(dir, password):
         return "Incorrect password", 401
     if filename[-4:] == ".tex":
@@ -73,15 +87,21 @@ def compile_LaTeX_to_PDF(dir, password, filename):
         file = open(output_file_name, 'rb')
         return file.read()
 
-@app.route('/Delete/<dir>/<password>')
-def delete(dir, password):
+@app.route('/Delete/', methods=["GET", "POST"])
+def delete():
+    contents = request.get_json()
+    dir = contents["workspace"]
+    password = contents["password"]
     if not password_hashing.check_password(dir, password):
         return "Incorrect password", 401
     os.system("rm -r " + os.path.join("workspace", dir))
     return "", 200
 
-@app.route('/ListFiles/<workspace>/<password>')
-def listFiles(workspace, password):
+@app.route('/ListFiles/', methods=["GET", "POST"])
+def listFiles():
+    contents = request.get_json()
+    workspace = contents["workspace"]
+    password = contents["password"]
     if not password_hashing.check_password(workspace, password):
         return "Incorrect password", 401
     os.chdir(os.path.join('workspace', workspace))
@@ -99,8 +119,12 @@ def downloadFile(workspace, password, file):
     file = open(os.path.join(workspace, file), 'rb')
     return file.read()
 
-@app.route('/CreateSubFolder/<workspace>/<password>/<folderpath>')
+@app.route('/CreateSubFolder/', methods=["GET", "POST"])
 def createSubFolder(workspace, password, folderpath):
+    contents = request.get_json()
+    workspace = contents["workspace"]
+    password = contents["password"]
+    folderpath = contents["subfolder"]
     if not password_hashing.check_password(workspace, password):
         return "Incorrect password", 401
     try:
